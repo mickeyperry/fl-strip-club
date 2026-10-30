@@ -1,9 +1,9 @@
-"""Strip Silence preview: http://127.0.0.1:8912
+"""FL Strip Club preview: http://127.0.0.1:8912
 
 Shows every audio clip of a saved FL project with the cuts that strip_silence would
 make, live as you turn the dials, and writes exactly what you see on Apply.
 
-Started by app.py (or the packaged StripSilence.exe), which opens the page in an app window.
+Started by app.py (or the packaged FLStripClub.exe), which opens the page in an app window.
 """
 import base64
 import subprocess
@@ -32,7 +32,7 @@ def data_dir():
         base = os.path.expanduser("~/Library/Application Support")
     else:
         base = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
-    d = os.path.join(base, "Strip Silence")
+    d = os.path.join(base, "FL Strip Club")
     os.makedirs(d, exist_ok=True)
     return d
 
@@ -164,7 +164,7 @@ class Handler(BaseHTTPRequestHandler):
                     ext = os.path.splitext(f)[1].lower()
                     return self._send(200, open(f, "rb").read(), {".png": "image/png", ".ttf": "font/ttf"}.get(ext, "application/octet-stream"))
             if u.path == "/api/ping":
-                return self._send(200, {"app": "strip-silence"})
+                return self._send(200, {"app": "fl-strip-club"})
             if u.path == "/api/last":
                 return self._send(200, {"path": last_path()})
             if u.path == "/api/load":

@@ -281,12 +281,15 @@ class Project:
         self.size = next(s for s in (88, 60, 32) if len(blob) % s == 0)
         self.recs = [bytearray(blob[k:k + self.size]) for k in range(0, len(blob), self.size)]
         # channel -> its color event (128); playlist tracks = blocks [238 data, 43, 239 name?]
-        self.chan_color, ch = {}, None
+        # channel -> mixer insert it feeds (event 104)
+        self.chan_color, self.chan_insert, ch = {}, {}, None
         for k, (i, d, a, b) in enumerate(self.events[:self.idx]):
             if i == 64:
                 ch = struct.unpack("<H", d)[0]
             elif i == 128 and ch is not None and ch not in self.chan_color:
                 self.chan_color[ch] = k
+            elif i == 104 and ch is not None and len(d) == 2 and ch not in self.chan_insert:
+                self.chan_insert[ch] = struct.unpack("<H", d)[0]
         self.tracks, k = [], self.idx + 1
         while k < len(self.events) and self.events[k][0] == 238:
             j = k + 1
@@ -343,6 +346,12 @@ class Project:
                 pieces.append([t0, t1])
         return [tuple(p) for p in pieces]
 
+    def _color_inserts(self, buf, insert_color):
+        """Patch mixer insert colors into buf (all after the playlist, so applied back to front)."""
+        start = self.tracks[-1][1] if self.tracks else self.idx + 1
+        for off, old, new in sorted(_insert_color_patch(self.events, start, insert_color), reverse=True):
+            buf[off:off + old] = new
+
     def write(self, plans, dst, groups=None, colors=None, remove=()):
         """plans: {record index: [(t0, t1), ...]}; records not in plans are kept as they are.
         Each piece's audio offset is computed from its exact tick, so it plays at the same moment.
@@ -395,7 +404,7 @@ class Project:
         blob = b"".join(bytes(x) for x in out)
         buf = bytearray(self.buf)
         # channel colors: same-size in-place patches, all before the clips block
-        chan_name = {}
+        chan_name, insert_color = {}, {}
         for c in self.audio_clips():
             t = c["track"]
             if groups.get(t):
@@ -404,6 +413,10 @@ class Project:
                 if k is not None:
                     a = self.events[k][2]
                     buf[a + 1:a + 5] = rgb_bytes(colors[groups[t]])
+                ins = self.chan_insert.get(c["ch"], 0)
+                if ins > 0:
+                    insert_color.setdefault(ins, colors[groups[t]])
+        self._color_inserts(buf, insert_color)
         # the clips block and the track blocks are adjacent in the file: rebuild them together
         new = encode_event(233, blob)
         end = self.events[self.idx][3]
@@ -437,6 +450,26 @@ class Project:
         struct.pack_into("<I", out_buf, len(self.head) + 4, len(out_buf) - len(self.head) - 8)
         open(dst, "wb").write(out_buf)
         return len(self.recs), len(out)
+
+
+def _insert_color_patch(events, start, insert_color):
+    """Mixer insert colors, so the mixer shows the same colors as the playlist. Inserts are the 236-event
+    blocks after the playlist (block 0 = master); FL writes insert n's color (149), icon (95) and name (204)
+    between insert n-1's output event (147) and insert n's 236. -> [(offset, old_len, new_bytes)]"""
+    ins = [k for k in range(start, len(events)) if events[k][0] == 236]
+    out = []
+    for n, col in insert_color.items():
+        if not 1 <= n < len(ins):
+            continue
+        lo, hi = ins[n - 1], ins[n]
+        k149 = next((k for k in range(lo, hi) if events[k][0] == 149), None)
+        if k149 is not None:
+            out.append((events[k149][2] + 1, 4, rgb_bytes(col)))
+            continue
+        k147 = max((k for k in range(lo, hi) if events[k][0] == 147), default=None)
+        if k147 is not None:
+            out.append((events[k147][3], 0, encode_event(149, rgb_bytes(col))))
+    return out
 
 
 # ------------------------------------------------------------------ main

@@ -1,4 +1,4 @@
-"""Strip Silence: the desktop app.
+"""FL Strip Club: the desktop app.
 
     pythonw app.py [Project.flp]
 
@@ -19,7 +19,7 @@ import webview
 
 import server
 
-TITLE = "Strip Silence"
+TITLE = "FL Strip Club"
 
 
 class Api:
@@ -39,10 +39,10 @@ class Api:
 
 
 def hand_over(path):
-    """True if an open Strip Silence took the project (then this copy just quits)."""
+    """True if an open FL Strip Club took the project (then this copy just quits)."""
     try:
         with urlopen("http://127.0.0.1:%d/api/ping" % server.PORT, timeout=1) as r:
-            if json.load(r).get("app") != "strip-silence":
+            if json.load(r).get("app") != "fl-strip-club":
                 return False
         req = Request("http://127.0.0.1:%d/api/show" % server.PORT, data=json.dumps({"path": path}).encode())
         urlopen(req, timeout=2).close()

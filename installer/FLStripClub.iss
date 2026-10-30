@@ -1,32 +1,35 @@
-; Strip Silence installer (Inno Setup 6). Built by ..\build.bat after PyInstaller.
-#define AppVersion "1.0.0"
+; FL Strip Club installer (Inno Setup 6). Built by ..\build.bat after PyInstaller.
+#define AppVersion "1.1.0"
 
 [Setup]
 AppId={{9C2E7A41-3B6D-4F1A-8E52-7D0C4B1A6F93}
-AppName=Strip Silence
+AppName=FL Strip Club
 AppVersion={#AppVersion}
-AppVerName=Strip Silence {#AppVersion}
+AppVerName=FL Strip Club {#AppVersion}
 AppPublisher=Pafu Igniters
-AppPublisherURL=https://github.com/mickeyperry/strip-silence
-AppSupportURL=https://github.com/mickeyperry/strip-silence/issues
-DefaultDirName={autopf}\Strip Silence
-DefaultGroupName=Strip Silence
+AppPublisherURL=https://github.com/mickeyperry/fl-strip-club
+AppSupportURL=https://github.com/mickeyperry/fl-strip-club/issues
+DefaultDirName={autopf}\FL Strip Club
+DefaultGroupName=FL Strip Club
 DisableDirPage=yes
+; 1.1 renamed Strip Silence -> FL Strip Club: install to the new folder, not the old one
+UsePreviousAppDir=no
+UsePreviousGroup=no
 DisableProgramGroupPage=yes
 ; per-user install: no admin prompt
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=Output
-OutputBaseFilename=StripSilence-Setup-{#AppVersion}
+OutputBaseFilename=FLStripClub-Setup-{#AppVersion}
 Compression=lzma2/ultra64
 SolidCompression=yes
 ; same dark Pafu look as ReWasp (brand\make_brand.py)
 WizardStyle=modern dark hidebevels
 WizardBackColor=#0B0B0F
 DisableWelcomePage=no
-UninstallDisplayName=Strip Silence for FL Studio
-UninstallDisplayIcon={app}\StripSilence.exe
+UninstallDisplayName=FL Strip Club: strip silence for FL Studio
+UninstallDisplayIcon={app}\FLStripClub.exe
 SetupIconFile=..\brand\app.ico
 WizardImageFile=..\brand\wizard_small.png,..\brand\wizard.png
 WizardSmallImageFile=..\brand\corner_small.png,..\brand\corner.png
@@ -39,33 +42,40 @@ Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription:
 Name: "contextmenu"; Description: "Add ""Strip silence"" to the right-click menu of .flp files"; GroupDescription: "Shortcuts:"
 
 [Files]
-Source: "..\dist\StripSilence\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\dist\FLStripClub\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\Strip Silence"; Filename: "{app}\StripSilence.exe"
-Name: "{group}\Uninstall Strip Silence"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\Strip Silence"; Filename: "{app}\StripSilence.exe"; Tasks: desktopicon
+Name: "{group}\FL Strip Club"; Filename: "{app}\FLStripClub.exe"
+Name: "{group}\Uninstall FL Strip Club"; Filename: "{uninstallexe}"
+Name: "{autodesktop}\FL Strip Club"; Filename: "{app}\FLStripClub.exe"; Tasks: desktopicon
+
+[InstallDelete]
+; leftovers of the Strip Silence 1.0 install (same AppId, old name)
+Type: filesandordirs; Name: "{autopf}\Strip Silence"
+Type: filesandordirs; Name: "{autoprograms}\Strip Silence"
+Type: files; Name: "{autodesktop}\Strip Silence.lnk"
 
 [Registry]
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flp\shell\StripSilence"; Flags: deletekey dontcreatekey
 ; right-click a .flp > Strip silence (doesn't touch which program opens .flp files)
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flp\shell\StripSilence"; ValueType: string; ValueName: ""; ValueData: "Strip silence"; Flags: uninsdeletekey; Tasks: contextmenu
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flp\shell\StripSilence"; ValueType: string; ValueName: "Icon"; ValueData: """{app}\StripSilence.exe"",0"; Tasks: contextmenu
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flp\shell\StripSilence\command"; ValueType: string; ValueName: ""; ValueData: """{app}\StripSilence.exe"" ""%1"""; Tasks: contextmenu
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flp\shell\FLStripClub"; ValueType: string; ValueName: ""; ValueData: "Strip silence (FL Strip Club)"; Flags: uninsdeletekey; Tasks: contextmenu
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flp\shell\FLStripClub"; ValueType: string; ValueName: "Icon"; ValueData: """{app}\FLStripClub.exe"",0"; Tasks: contextmenu
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flp\shell\FLStripClub\command"; ValueType: string; ValueName: ""; ValueData: """{app}\FLStripClub.exe"" ""%1"""; Tasks: contextmenu
 
 [Run]
-Filename: "{app}\StripSilence.exe"; Description: "Open Strip Silence"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\FLStripClub.exe"; Description: "Open FL Strip Club"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
-Type: filesandordirs; Name: "{localappdata}\Strip Silence"
+Type: filesandordirs; Name: "{localappdata}\FL Strip Club"
 
 [Messages]
-WelcomeLabel1=Strip Silence
+WelcomeLabel1=FL Strip Club
 WelcomeLabel2=Cuts the silence out of the audio clips in your FL Studio playlist. Every sound stays exactly where it was in the song; only the empty stretches go.%n%nPreview every cut before you save, and your original project is never changed.%n%nMade by Mickey Perry, aka Pafu Igniters (breakbeat, trance and drum & bass), who also does motion design and animation. I made this to tidy up my own stem-heavy projects. I hope it saves you some clicking too.
-FinishedHeadingLabel=Strip Silence is installed
-FinishedLabel=Save your project in FL Studio, then open it in Strip Silence (or right-click the .flp file > Strip silence).
-FinishedLabelNoIcons=Save your project in FL Studio, then open it in Strip Silence (or right-click the .flp file > Strip silence).
+FinishedHeadingLabel=FL Strip Club is installed
+FinishedLabel=Save your project in FL Studio, then open it in FL Strip Club (or right-click the .flp file > Strip silence).
+FinishedLabelNoIcons=Save your project in FL Studio, then open it in FL Strip Club (or right-click the .flp file > Strip silence).
 
 [Code]
 procedure OpenLink(Sender: TObject);
@@ -103,7 +113,7 @@ procedure AddLinks;
 var
   Y: Integer;
 begin
-  // below the "Open Strip Silence" checkbox
+  // below the "Open FL Strip Club" checkbox
   Y := WizardForm.RunList.Top + ScaleY(44);
   AddLink(Y, 'Pafu Igniters (music)', '', True);
   AddLink(Y, 'SoundCloud', 'https://soundcloud.com/pafu', False);
@@ -135,7 +145,7 @@ var
 begin
   Result := True;
   if not HasWebView2 then
-    if MsgBox('Strip Silence needs the Microsoft Edge WebView2 Runtime, which is not on this PC.' + #13#10#13#10 +
+    if MsgBox('FL Strip Club needs the Microsoft Edge WebView2 Runtime, which is not on this PC.' + #13#10#13#10 +
               'Open the download page now? (Install it, then run this setup again.)', mbConfirmation, MB_YESNO) = IDYES then begin
       ShellExec('open', 'https://developer.microsoft.com/microsoft-edge/webview2/#download-section', '', '', SW_SHOWNORMAL, ewNoWait, Code);
       Result := False;

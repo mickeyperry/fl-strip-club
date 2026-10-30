@@ -17,7 +17,7 @@ MP = os.path.join(HERE, "src", "mp_fav.png")
 AILERONS = os.path.join(os.environ["LOCALAPPDATA"], r"Microsoft\Windows\Fonts\Ailerons.ttf")
 # mickeyperry.github.io: Space Grotesk for the name (OFL, from Google Fonts; put SpaceGrotesk.ttf in src/)
 GROTESK = os.path.join(HERE, "src", "SpaceGrotesk.ttf")
-BLACK = (11, 11, 15)          # = WizardBackColor in StripSilence.iss
+BLACK = (11, 11, 15)          # = WizardBackColor in FLStripClub.iss
 PINK, PURPLE = (255, 45, 135), (180, 107, 255)   # mickeyperry.github.io accents
 DIM = (200, 200, 214)
 
