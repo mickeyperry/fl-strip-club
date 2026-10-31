@@ -5,7 +5,7 @@
 <p align="center"><b>Strip silence for FL Studio.</b> Your clips take it all off: only the silence goes.<br>Pro Tools-style strip silence for FL Studio's playlist.<br>
 Cuts the empty stretches out of your audio clips. Every sound stays exactly where it was in the song.</p>
 
-![FL Strip Club](docs/screenshot.png)
+![FL Strip Club demo](docs/demo.gif)
 
 ## What it does
 
