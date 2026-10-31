@@ -32,6 +32,7 @@
   button.go { background: var(--grad); border: 0; color: #fff; font-weight: 700; padding: 9px 22px; font-family: "Space Grotesk", sans-serif; letter-spacing: .3px; }
   button.go:hover { filter: brightness(1.12); }
   button.icon { padding: 6px 10px; }
+  #orig.on { background: var(--grad); border-color: transparent; color: #fff; }
 
   /* settings bar */
   .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: stretch; padding: 12px 18px; background: var(--bg); border-bottom: 1px solid var(--line); }
@@ -67,6 +68,9 @@
   .row .name .n { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .row .name .c { color: var(--dim); font-size: 11px; display: flex; gap: 6px; align-items: center; }
   .row.off .name { opacity: .4; text-decoration: line-through; }
+  body.compact .row .name { flex-direction: row; align-items: center; justify-content: space-between; padding-top: 0; padding-bottom: 0; font-size: 12px; }
+  body.compact .row .name .c { font-size: 10.5px; flex: none; }
+  body.compact .row .name select { display: none !important; }
   .row .name select { display: none; width: 92px; padding: 1px 3px; font-size: 11px; }
   body.grouping .row .name select { display: inline-block; }
   .row.gstart { border-top: 2px solid #000; }
@@ -119,6 +123,7 @@
     <div class="seg"><button data-preset="fine" title="Tight cuts">Fine</button><button data-preset="rough" title="Coarse chops on the beat">Rough</button></div>
     <label class="toggle" title="Sort tracks into Drums / Bass / Synths / Vocals / FX blocks, rename and color them"><input id="group" type="checkbox"> Group &amp; color</label>
     <label class="toggle" title="Delete playlist tracks that come out with no sound at all (their channels stay in the rack)"><input id="remove" type="checkbox"> Remove empty tracks</label>
+    <button id="orig" title="Hold to see the clips as they are now (or hold Space)">Original</button>
     <div class="seg"><button id="undo" class="icon" title="Undo (Ctrl+Z)" disabled>&#8630;</button><button id="redo" class="icon" title="Redo (Ctrl+Y)" disabled>&#8631;</button></div>
   </div>
   <div class="stats" id="stats"></div>
@@ -139,7 +144,7 @@
   <span class="legend"><span><span class="sw" style="background:var(--grad)"></span>kept</span>
     <span><span class="sw" style="background:#3a3a46"></span>removed</span>
     <span><span class="sw" style="background:#f0c05a"></span>threshold</span></span>
-  <span class="hint">Click a track name to skip it · Ctrl+wheel zoom · Alt+wheel height</span>
+  <span class="hint">Hold Space for the original · click a track name to skip it · Ctrl+wheel zoom · Alt+wheel height</span>
   <span class="saveto"><span>Save as</span><input id="out" type="text" spellcheck="false" title="A new project file is written; your original is never changed"></span>
   <span id="note"></span>
   <label class="toggle" title="Open the new project in FL Studio when it is written"><input id="openfl" type="checkbox" checked> Open in FL</label>
@@ -234,8 +239,11 @@ function drawRow(r) {
     const x0 = Math.max(0, tickToX(c.pos, w)), x1 = Math.min(w, tickToX(c.pos + c.len, w));
     if (x1 <= 0 || x0 >= w) continue;
     const pieces = off.has(r.key) ? [[c.pos, c.pos + c.len]] : plans[c.i] || [];
+    // B = how much of the original, uncut clip shows (0 = the cuts, 1 = the project as it is now)
+    const B = off.has(r.key) ? 0 : (r.before ?? before);
     // clip body
     g.fillStyle = '#16161d'; g.fillRect(x0, 2, x1 - x0, h - 4);
+    if (B) { g.globalAlpha = B; g.fillStyle = col + '2e'; g.fillRect(x0, 2, x1 - x0, h - 4); g.globalAlpha = 1; }
     for (const [t0, t1] of pieces) {
       const a = Math.max(0, tickToX(t0, w)), b = Math.min(w, tickToX(t1, w));
       g.fillStyle = off.has(r.key) ? '#1f1f28' : col + '2e'; g.fillRect(a, 2, Math.max(1, b - a), h - 4);
@@ -254,20 +262,43 @@ function drawRow(r) {
       const y = scale(m) * amp;
       g.fillStyle = kept ? col : (m > lim ? '#6e6e80' : '#3a3a46');
       g.fillRect(x, mid - y, 1, Math.max(1, 2 * y));
+      if (!kept && B) { g.globalAlpha = B; g.fillStyle = col; g.fillRect(x, mid - y, 1, Math.max(1, 2 * y)); g.globalAlpha = 1; }
     }
     // piece outlines
     if (!off.has(r.key)) {
       g.strokeStyle = col; g.lineWidth = 1;
+      g.globalAlpha = 1 - B;
       for (const [t0, t1] of pieces) {
         const a = tickToX(t0, w), b = tickToX(t1, w);
         if (b < 0 || a > w) continue;
         g.strokeRect(Math.round(a) + .5, 2.5, Math.max(1, Math.round(b - a) - 1), h - 5);
       }
+      if (B) {   // the whole clip, as FL shows it now
+        g.globalAlpha = B;
+        g.strokeRect(Math.round(tickToX(c.pos, w)) + .5, 2.5, Math.max(1, Math.round(tickToX(c.pos + c.len, w) - tickToX(c.pos, w)) - 1), h - 5);
+      }
+      g.globalAlpha = 1;
     }
     // threshold lines
     const ty = scale(lim) * amp;
+    g.globalAlpha = 1 - B;
     g.fillStyle = '#f0c05a88'; g.fillRect(x0, Math.round(mid - ty), x1 - x0, 1); g.fillRect(x0, Math.round(mid + ty), x1 - x0, 1);
+    g.globalAlpha = 1;
   }
+}
+
+// ---- Original view: hold the Original button (or Space) to see the clips as they are in the project now
+let before = 0, beforeAnim = 0;
+function showOriginal(target, ms = 260) {
+  cancelAnimationFrame(beforeAnim);
+  const from = before, t0 = performance.now();
+  const step = now => {
+    const t = Math.min(1, (now - t0) / ms), e = t * t * (3 - 2 * t);
+    before = from + (target - from) * e; redraw();
+    if (t < 1) beforeAnim = requestAnimationFrame(step);
+  };
+  beforeAnim = requestAnimationFrame(step);
+  $('#orig').classList.toggle('on', target > 0);
 }
 
 let raf = 0;
@@ -381,6 +412,12 @@ function commit() {   // call after a finished change (slider released, click, s
 function undo() { if (!history.length) return; future.push(snapshot()); committed = history.pop(); restore(committed); updateUndo(); }
 function redo() { if (!future.length) return; history.push(snapshot()); committed = future.pop(); restore(committed); updateUndo(); }
 $('#undo').onclick = undo; $('#redo').onclick = redo;
+$('#orig').addEventListener('pointerdown', () => showOriginal(1));
+['pointerup', 'pointerleave'].forEach(ev => $('#orig').addEventListener(ev, () => { if (before || $('#orig').classList.contains('on')) showOriginal(0); }));
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' && !e.repeat && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') { e.preventDefault(); showOriginal(1); }
+});
+document.addEventListener('keyup', e => { if (e.code === 'Space') showOriginal(0); });
 document.addEventListener('keydown', e => {
   if (!(e.ctrlKey || e.metaKey) || e.target.tagName === 'INPUT' && e.target.type === 'text') return;
   const k = e.key.toLowerCase();
@@ -420,6 +457,7 @@ try { rowH = Math.min(240, Math.max(20, +localStorage.ssRowH || 52)); } catch (e
 function setRowH(h) {
   rowH = Math.min(240, Math.max(20, Math.round(h)));
   document.documentElement.style.setProperty('--rh', rowH + 'px');
+  document.body.classList.toggle('compact', rowH < 34);
   try { localStorage.ssRowH = rowH; } catch (e) {}
   redraw();
 }

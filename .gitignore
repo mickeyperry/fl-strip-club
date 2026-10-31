@@ -5,3 +5,4 @@ installer/Output/
 *.spec
 state.json
 *.bak
+posts.md
